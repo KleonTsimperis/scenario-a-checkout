@@ -1,0 +1,29 @@
+{
+  "name": "Netconomy Frontend Assessment - Scenario A",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers-contrib/features/pnpm:2": {
+      "version": "latest"
+    }
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Store Checkout Preview",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "pnpm install",
+  "postStartCommand": "pnpm dev",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.startupEditor": "none"
+      },
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
