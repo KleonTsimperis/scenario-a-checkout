@@ -10,11 +10,10 @@
   "portsAttributes": {
     "3000": {
       "label": "Store Checkout Preview",
-      "onAutoForward": "openPreview"
+      "onAutoForward": "openBrowser"
     }
   },
   "postCreateCommand": "pnpm install",
-  "postStartCommand": "pnpm dev",
   "customizations": {
     "vscode": {
       "settings": {
