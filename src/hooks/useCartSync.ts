@@ -1,14 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useCartStore } from '@/stores/useCartStore';
 import { cartClient } from '@/lib/api/cartClient';
 
 export function useCartSync() {
   const { updateQuantityOptimistic, rollback, setItems } = useCartStore();
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Track monotonic sequence of mutation requests to discard out-of-order stale responses
+  const latestMutationRef = useRef(0);
 
   const syncQuantityChange = useCallback(
     async (itemId: string, delta: number) => {
-      // 1. Optimistic local update
+      // 1. Increment sequence counter and apply optimistic update
+      const currentMutationId = ++latestMutationRef.current;
       const { previousItems } = updateQuantityOptimistic(itemId, delta);
       setIsSyncing(true);
 
@@ -16,15 +20,20 @@ export function useCartSync() {
         // 2. Network call with synthetic latency
         const updatedCart = await cartClient.updateItem(itemId, delta);
 
-        // INTENTIONAL BUG 1:
-        // No request sequence ID, timestamp, or AbortController check.
-        // If an older request resolves AFTER a newer request, it will overwrite the store:
-        setItems(updatedCart.items);
+        // SOLUTION 1:
+        // Only apply response if this is the latest mutation in flight.
+        // Stale responses arriving out of order are discarded.
+        if (currentMutationId === latestMutationRef.current) {
+          setItems(updatedCart.items);
+        }
       } catch (err) {
-        // Blind rollback destroys concurrent mutations
-        rollback(previousItems);
+        if (currentMutationId === latestMutationRef.current) {
+          rollback(previousItems);
+        }
       } finally {
-        setIsSyncing(false);
+        if (currentMutationId === latestMutationRef.current) {
+          setIsSyncing(false);
+        }
       }
     },
     [updateQuantityOptimistic, rollback, setItems]
